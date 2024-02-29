@@ -1,5 +1,6 @@
 
 import os
+import json
 from alibabacloud_ocr_api20210707.client import Client as ocr_api20210707Client
 from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_ocr_api20210707 import models as ocr_api_20210707_models
@@ -42,8 +43,7 @@ def get_ocr_text(url):
     try:
         # 复制代码运行请自行打印 API 的返回值
         resp = client.recognize_all_text_with_options(recognize_all_text_request, runtime)
-        print(f"resp:{resp.body}")
-        return resp.body
+        return str(resp.body)
     except Exception as error:
         # 错误 message
         print(error.message)
@@ -53,4 +53,5 @@ def get_ocr_text(url):
 
 if __name__ == '__main__':
     url = "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fsafe-img.xhscdn.com%2Fbw1%2F227bb9d7-99ac-490f-9172-3e332677f6bf%3FimageView2%2F2%2Fw%2F1080%2Fformat%2Fjpg&refer=http%3A%2F%2Fsafe-img.xhscdn.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1711779614&t=2041c9d3969f147f293f1d7218503d36"
-    get_ocr_text(url)       
+    text = get_ocr_text(url)
+    print(f"resp:{text}")      
