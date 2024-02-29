@@ -1,0 +1,4 @@
+alibabacloud_ocr_api20210707==2.0.4
+alibabacloud_tea_openapi==0.3.8
+alibabacloud_tea_util==0.3.11
+openai==1.12.0
