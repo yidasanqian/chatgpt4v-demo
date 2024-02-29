@@ -4,6 +4,7 @@ import json
 from alibabacloud_ocr_api20210707.client import Client as ocr_api20210707Client
 from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_ocr_api20210707 import models as ocr_api_20210707_models
+from alibabacloud_darabonba_stream.client import Client as StreamClient
 from alibabacloud_tea_util.client import Client as UtilClient
 from alibabacloud_tea_util import models as util_models
 
@@ -48,6 +49,22 @@ def get_ocr_text(url):
         # 错误 message
         print(error.message)
         # 诊断地址
+        print(error.data.get("Recommend"))
+        UtilClient.assert_as_string(error.message)
+
+def get_ocr_text_from_filepath(filepath):
+    client = create_client(access_key, access_secret)
+    body_stream = StreamClient.read_from_file_path(filepath)
+    recognize_all_text_request = ocr_api_20210707_models.RecognizeAllTextRequest(
+        body=body_stream,
+        type='General'
+    )
+    runtime = util_models.RuntimeOptions()
+    try:
+       resp = client.recognize_all_text_with_options(recognize_all_text_request, runtime)
+       return str(resp.body)
+    except Exception as error:
+        print(error.message)
         print(error.data.get("Recommend"))
         UtilClient.assert_as_string(error.message)
 

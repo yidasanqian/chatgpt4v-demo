@@ -1,6 +1,7 @@
 import os
 import inspect
 import json
+import gradio as gr
 from openai import AzureOpenAI
 from recognizeTextSample import get_ocr_text
 
@@ -128,15 +129,32 @@ def run_conversation(messages, tools, available_functions):
     return response
 
 
+def captioner(image):
+    print(image)
+    return image, "faker result"
+
+demo = gr.Interface(fn=captioner,
+                inputs=[gr.Image(label="Upload image", type="pil")],
+                outputs=[gr.Image(type="pil"), gr.Textbox(label="识别结果")],
+                title="文字识别OCR",
+                description="识别上传的图片中的文字",
+                allow_flagging="never")
 
 if __name__ == '__main__':
-    messages = [
-     {
-        "role": "system",
-        "content": "Assistant is a helpful assistant that helps users get answers to questions. Assistant has access to several tools and sometimes you may need to call multiple tools in sequence to get answers for your users.用中文回答",
-        }
-    ]    
-    messages.append({"role": "user", "content": "请描述这张图片:url=https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fsafe-img.xhscdn.com%2Fbw1%2F227bb9d7-99ac-490f-9172-3e332677f6bf%3FimageView2%2F2%2Fw%2F1080%2Fformat%2Fjpg&refer=http%3A%2F%2Fsafe-img.xhscdn.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1711779614&t=2041c9d3969f147f293f1d7218503d36"})
-    print("Final Response:")
-    assistant_response = run_conversation(messages, tools, available_functions)
-    print(assistant_response.choices[0].message)
+    # messages = [
+    #  {
+    #     "role": "system",
+    #     "content": "Assistant is a helpful assistant that helps users get answers to questions. Assistant has access to several tools and sometimes you may need to call multiple tools in sequence to get answers for your users.用中文回答",
+    #     }
+    # ]    
+    # messages.append({"role": "user", "content": "请描述这张图片:url=https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fsafe-img.xhscdn.com%2Fbw1%2F227bb9d7-99ac-490f-9172-3e332677f6bf%3FimageView2%2F2%2Fw%2F1080%2Fformat%2Fjpg&refer=http%3A%2F%2Fsafe-img.xhscdn.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1711779614&t=2041c9d3969f147f293f1d7218503d36"})
+    # print("Final Response:")
+    # assistant_response = run_conversation(messages, tools, available_functions)
+    # print(assistant_response.choices[0].message)
+
+   
+
+    demo.launch(share=True)
+
+
+
