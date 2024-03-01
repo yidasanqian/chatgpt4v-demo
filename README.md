@@ -1,5 +1,13 @@
 # chatgpt4v-demo
 
+## ocr接口
+
+https://api.aliyun.com/document/ocr-api/2021-07-07/RecognizeAllText
+
+### 获取AccessKey
+
+https://help.aliyun.com/zh/ram/user-guide/create-an-accesskey-pair
+
 ## 环境变量
 .env
 ```
