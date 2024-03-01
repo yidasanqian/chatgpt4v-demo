@@ -164,7 +164,9 @@ def add_file(history, file):
     file_extension = os.path.splitext(source_file)[1]
     # 生成UUID作为新文件名
     new_filename = str(uuid.uuid4()) + file_extension
-    # 目标文件路径
+    # 判断目标文件夹是否存在，如果不存在则创建
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder)
     target_file = os.path.join(target_folder, new_filename)
     # 复制文件并重命名
     shutil.copy(source_file, target_file)
