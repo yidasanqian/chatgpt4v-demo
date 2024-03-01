@@ -1,9 +1,11 @@
 import os
 import inspect
 import json
+import shutil
+import uuid
 import gradio as gr
 from openai import AzureOpenAI
-from recognizeTextSample import get_ocr_text
+from recognizeTextSample import get_ocr_text,get_ocr_text_from_filepath
 
 api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
 api_key= os.getenv("AZURE_OPENAI_API_KEY")
@@ -21,7 +23,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "get_ocr_text",
-            "description": "OCR统一识别接口支持识别多种图片类型",
+            "description": "OCR统一识别接口支持识别多种图片类型，从图片链接url读取参数",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -34,9 +36,27 @@ tools = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_ocr_text_from_filepath",
+            "description": "OCR统一识别接口支持识别多种图片类型，从文件路径filepath读取参数",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "图片路径。示例值:/tmp/example.png",
+                    }
+                },
+                "required": ["filepath"],
+            },
+        },
+    },
 ]
 available_functions = {
-    "get_ocr_text": get_ocr_text
+    "get_ocr_text": get_ocr_text,
+    "get_ocr_text_from_filepath": get_ocr_text_from_filepath
 }
 
 # helper method used to check if the correct arguments are provided to a function
@@ -128,33 +148,81 @@ def run_conversation(messages, tools, available_functions):
         return second_response
     return response
 
+ 
+def add_text(history, text):
+    history = history + [(text, None)]
+    return history, gr.Textbox(value="", interactive=False)
 
-def captioner(image):
-    print(image)
-    return image, "faker result"
+# 目标文件夹路径
+target_folder = "/tmp/upload/"
+latest_file = []
 
-demo = gr.Interface(fn=captioner,
-                inputs=[gr.Image(label="Upload image", type="pil")],
-                outputs=[gr.Image(type="pil"), gr.Textbox(label="识别结果")],
-                title="文字识别OCR",
-                description="识别上传的图片中的文字",
-                allow_flagging="never")
+def add_file(history, file):
+    history = history + [((file.name,), None)]
+    # 获取文件后缀名
+    source_file = file.name
+    file_extension = os.path.splitext(source_file)[1]
+    # 生成UUID作为新文件名
+    new_filename = str(uuid.uuid4()) + file_extension
+    # 目标文件路径
+    target_file = os.path.join(target_folder, new_filename)
+    # 复制文件并重命名
+    shutil.copy(source_file, target_file)
+    latest_file.append(target_file)
+    return history
+
+messages = [] 
+def bot(history):
+    if len(messages) == 0:
+        messages.append( {
+            "role": "system",
+            "content": "Assistant is a helpful assistant that helps users get answers to questions. Assistant has access to several tools and sometimes you may need to call multiple tools in sequence to get answers for your users.用中文回答",
+            })
+ 
+    
+    messages.append({
+        "role": "user",
+        "content": f"识别图片filepath={latest_file[0]}" if len(latest_file)>0 else history[-1][0]
+    })
+    assistant_response = run_conversation(messages, tools, available_functions)
+    latest_file.clear();
+    history[-1][1] = assistant_response.choices[0].message.content;
+    return history
+
+def clear_history(history, *args):
+    history = []
+    messages.clear()
+    print("新会话")
+    return history, gr.Textbox(value="")
 
 if __name__ == '__main__':
-    # messages = [
-    #  {
-    #     "role": "system",
-    #     "content": "Assistant is a helpful assistant that helps users get answers to questions. Assistant has access to several tools and sometimes you may need to call multiple tools in sequence to get answers for your users.用中文回答",
-    #     }
-    # ]    
-    # messages.append({"role": "user", "content": "请描述这张图片:url=https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fsafe-img.xhscdn.com%2Fbw1%2F227bb9d7-99ac-490f-9172-3e332677f6bf%3FimageView2%2F2%2Fw%2F1080%2Fformat%2Fjpg&refer=http%3A%2F%2Fsafe-img.xhscdn.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1711779614&t=2041c9d3969f147f293f1d7218503d36"})
-    # print("Final Response:")
-    # assistant_response = run_conversation(messages, tools, available_functions)
-    # print(assistant_response.choices[0].message)
+    with gr.Blocks() as demo:
+        chatbot = gr.Chatbot(
+            [],
+            elem_id="chatbot",
+            bubble_full_width=False,
+            avatar_images=(None, (os.path.join(os.path.dirname(__file__), "avatar.jpg"))),
+        )
 
-   
+        with gr.Row():
+            txt = gr.Textbox(
+                scale=4,
+                show_label=False,
+                placeholder="输入文本并按回车键，或上传图像",
+                container=False,
+            )
+            btn = gr.UploadButton("📁", file_types=["image"])
+            clear = gr.ClearButton([chatbot, txt])
 
-    demo.launch(share=True)
+        txt_msg = txt.submit(add_text, [chatbot, txt], [chatbot, txt], queue=False).then(
+            bot, chatbot, chatbot, api_name="bot_response"
+        )
+        txt_msg.then(lambda: gr.Textbox(interactive=True), None, [txt], queue=False)
+        file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
+            bot, chatbot, chatbot
+        )
+        clear.click(clear_history, [chatbot, txt], [chatbot, txt], queue=False)
+    demo.queue().launch(share=True)
 
 
 

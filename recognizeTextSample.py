@@ -69,6 +69,8 @@ def get_ocr_text_from_filepath(filepath):
         UtilClient.assert_as_string(error.message)
 
 if __name__ == '__main__':
-    url = "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fsafe-img.xhscdn.com%2Fbw1%2F227bb9d7-99ac-490f-9172-3e332677f6bf%3FimageView2%2F2%2Fw%2F1080%2Fformat%2Fjpg&refer=http%3A%2F%2Fsafe-img.xhscdn.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1711779614&t=2041c9d3969f147f293f1d7218503d36"
-    text = get_ocr_text(url)
+    # url = "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fsafe-img.xhscdn.com%2Fbw1%2F227bb9d7-99ac-490f-9172-3e332677f6bf%3FimageView2%2F2%2Fw%2F1080%2Fformat%2Fjpg&refer=http%3A%2F%2Fsafe-img.xhscdn.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1711779614&t=2041c9d3969f147f293f1d7218503d36"
+    # text = get_ocr_text(url)
+    filepath = "C:/Users/linyu/Pictures/微信图片_20240229175620.png"
+    text = get_ocr_text_from_filepath(filepath)
     print(f"resp:{text}")      
