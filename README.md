@@ -1,2 +1,11 @@
 # chatgpt4v-demo
 
+## 环境变量
+.env
+```
+AZURE_OPENAI_API_KEY=
+AZURE_OPENAI_ENDPOINT=
+# 阿里云的AccessKey及Secret
+ALIBABA_CLOUD_ACCESS_KEY_ID=
+ALIBABA_CLOUD_ACCESS_KEY_SECRET=
+```
