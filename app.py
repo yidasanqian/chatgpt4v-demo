@@ -2,7 +2,9 @@ import os
 import inspect
 import json
 import shutil
+from turtle import width
 import uuid
+from altair import value
 import gradio as gr
 from openai import AzureOpenAI
 from recognizeTextSample import get_ocr_text,get_ocr_text_from_filepath
@@ -148,19 +150,22 @@ def run_conversation(messages, tools, available_functions):
         return second_response
     return response
 
- 
-def add_text(history, text):
-    history = history + [(text, None)]
-    return history, gr.Textbox(value="", interactive=False)
-
 # 目标文件夹路径
 target_folder = "/tmp/upload/"
 latest_file = []
 
+def add_text(history, text, img):
+    if img is not None:
+        history += add_file(history, img)
+    
+    if len(text.strip()) > 0:
+        history = history + [(text, None)]
+    return history, gr.Textbox(value="", interactive=False)
+
 def add_file(history, file):
-    history = history + [((file.name,), None)]
+    history = history + [((file,), None)]
     # 获取文件后缀名
-    source_file = file.name
+    source_file = file
     file_extension = os.path.splitext(source_file)[1]
     # 生成UUID作为新文件名
     new_filename = str(uuid.uuid4()) + file_extension
@@ -178,24 +183,39 @@ def bot(history):
     if len(messages) == 0:
         messages.append( {
             "role": "system",
-            "content": "Assistant is a helpful assistant that helps users get answers to questions. Assistant has access to several tools and sometimes you may need to call multiple tools in sequence to get answers for your users.用中文回答",
+            "content": """Assistant is a helpful assistant that helps users get answers to questions.
+             Assistant has access to several tools and sometimes you may need to call multiple tools in sequence to get answers for your users.
+            若进行了图片识别，以json格式输出答案。
+            用中文回答。
+            """,
             })
- 
     
-    messages.append({
-        "role": "user",
-        "content": f"识别图片filepath={latest_file[0]}" if len(latest_file)>0 else history[-1][0]
-    })
-    assistant_response = run_conversation(messages, tools, available_functions)
-    latest_file.clear();
-    history[-1][1] = assistant_response.choices[0].message.content;
+    content = None
+    if len(history) > 0:
+        if os.path.isfile(history[-1][0][0]):
+            # 只发送了图片
+            history[-1][1] = "如果您有具体的问题或者需要帮助处理图片，请告诉我您的需求"
+            return history
+        else:
+            content = history[-1][0]
+    if len(latest_file) > 0:
+        content = f"{content} filepath={latest_file[0]}" if content else f"filepath={latest_file[0]}"
+    if content:
+        messages.append({
+            "role": "user",
+            "content": content
+        })
+        assistant_response = run_conversation(messages, tools, available_functions)
+        history[-1][1] = assistant_response.choices[0].message.content
+
+    latest_file.clear()
     return history
 
 def clear_history(history, *args):
     history = []
     messages.clear()
     print("新会话")
-    return history, gr.Textbox(value="")
+    return history, gr.Textbox(interactive=True), None
 
 if __name__ == '__main__':
     with gr.Blocks() as demo:
@@ -210,20 +230,22 @@ if __name__ == '__main__':
             txt = gr.Textbox(
                 scale=4,
                 show_label=False,
-                placeholder="输入文本并按回车键，或上传图像",
+                placeholder="输入文本，或上传图像",
                 container=False,
             )
-            btn = gr.UploadButton("📁", file_types=["image"])
-            clear = gr.ClearButton([chatbot, txt])
+            submit_button = gr.Button(value="提交", variant="primary")
+            clear = gr.ClearButton([chatbot, txt],value="新会话")
 
-        txt_msg = txt.submit(add_text, [chatbot, txt], [chatbot, txt], queue=False).then(
+        btn = gr.Image(elem_id="img", type="filepath", label="上传图像", height=300)
+    
+        txt_msg = submit_button.click(add_text, [chatbot, txt, btn], [chatbot, txt], queue=False).then(
             bot, chatbot, chatbot, api_name="bot_response"
         )
-        txt_msg.then(lambda: gr.Textbox(interactive=True), None, [txt], queue=False)
-        file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
-            bot, chatbot, chatbot
+        # 清理image组件图片
+        txt_msg.then(lambda: gr.Textbox(interactive=True), None, [txt], queue=False).then(
+            lambda: gr.update(elem_id="img", value=None), None, [btn], queue=False
         )
-        clear.click(clear_history, [chatbot, txt], [chatbot, txt], queue=False)
+        clear.click(clear_history, [chatbot, txt, btn], [chatbot, txt, btn], queue=False)
     demo.queue().launch(share=True)
 
 
