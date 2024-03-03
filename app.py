@@ -2,9 +2,7 @@ import os
 import inspect
 import json
 import shutil
-from turtle import width
 import uuid
-from altair import value
 import gradio as gr
 from openai import AzureOpenAI
 from recognizeTextSample import get_ocr_text,get_ocr_text_from_filepath
@@ -84,6 +82,7 @@ def run_conversation(messages, tools, available_functions):
         messages=messages,
         tools=tools,
         tool_choice="auto",
+        temperature=0
     )
 
     response_message = response.choices[0].message
@@ -144,7 +143,8 @@ def run_conversation(messages, tools, available_functions):
 
         second_response = client.chat.completions.create(
             messages=messages,
-            model=model_name
+            model=model_name,
+            temperature=0
         )  # get a new response from GPT where it can see the function response
 
         return second_response
@@ -185,7 +185,7 @@ def bot(history):
             "role": "system",
             "content": """Assistant is a helpful assistant that helps users get answers to questions.
              Assistant has access to several tools and sometimes you may need to call multiple tools in sequence to get answers for your users.
-            若进行了图片识别，以json格式输出答案。
+            若进行了图片识别，以json格式输出答案，不要附加额外信息。
             用中文回答。
             """,
             })
@@ -199,7 +199,7 @@ def bot(history):
         else:
             content = history[-1][0]
     if len(latest_file) > 0:
-        content = f"{content} filepath={latest_file[0]}" if content else f"filepath={latest_file[0]}"
+        content = f"{content} filepath={latest_file[-1]}" if content else f"filepath={latest_file[-1]}"
     if content:
         messages.append({
             "role": "user",
@@ -214,6 +214,7 @@ def bot(history):
 def clear_history(history, *args):
     history = []
     messages.clear()
+    latest_file.clear()
     print("新会话")
     return history, gr.Textbox(interactive=True), None
 
